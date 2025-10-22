@@ -16,6 +16,10 @@ export const SearchBar = ({ onSearch }) => {
       // Navigate to search page with query
       navigate(`/search?q=${encodeURIComponent(query)}`);
       setQuery('');
+
+      if (onSearch) {
+        onSearch(query);
+      }
     }
   };
 

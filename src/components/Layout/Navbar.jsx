@@ -17,6 +17,7 @@ export const Navbar = () => {
   };
 
   const handlePostCreated = (newPost) => {
+    console.log('New post created:', newPost);
     setShowCreateModal(false);
     navigate('/');
   };

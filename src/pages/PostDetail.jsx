@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import ReactMarkdown from 'react-markdown';
 
 export const PostDetail = () => {
-  const { slug } = useParams();
+  //const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState(null);

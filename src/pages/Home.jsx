@@ -6,8 +6,8 @@ import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Bookmark, Eye, Search, Plus } from 'lucide-react';
 import { apiClient } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { PostCard } from '../components/Posts/PostCard';
-import { CreatePostModal } from '../components/Posts/CreatePostModal';
+import { PostCard } from '../components/posts/PostCard';
+import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { SearchBar } from '../components/SearchBar';
 
 export const HomePage = () => {
@@ -24,6 +24,7 @@ export const HomePage = () => {
   // Fetch feed/posts
   useEffect(() => {
     fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, activeTab]);
 
   const fetchPosts = async () => {
@@ -34,14 +35,16 @@ export const HomePage = () => {
       let data;
       if (activeTab === 'search' && searchQuery) {
         data = await apiClient.getPosts({ search: searchQuery, page });
-        setPosts(page === 1 ? data.results || [] : [...posts, ...data.results] || []);
+        setPosts(prevPosts => page === 1 ? (data.results || []) : [...prevPosts, ...(data.results || [])]);
         setHasMore(!!data.next);
       } else {
-        data = await apiClient.getPosts();
-        setPosts(Array.isArray(data) ? data : data.results || []);
+        data = await apiClient.getPosts({ page });
+        setPosts(prevPosts => page === 1 ? (Array.isArray(data) ? data : data.results || []) : [...prevPosts, ...(Array.isArray(data) ? data : data.results || [])]);
+        setHasMore(!!data.next);
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching posts:', err);
+      setError(err.message || 'Failed to load posts');
     } finally {
       setLoading(false);
     }
@@ -50,53 +53,125 @@ export const HomePage = () => {
   const handleSearch = (query) => {
     setSearchQuery(query);
     setPage(1);
+    setPosts([]); // Clear posts when starting new search
     setActiveTab('search');
   };
 
   const handlePostCreated = (newPost) => {
-    setPosts([newPost, ...posts]);
+    setPosts(prevPosts => [newPost, ...prevPosts]);
     setShowCreateModal(false);
   };
 
-  const handleLike = (postId, isLiked) => {
-    setPosts(posts.map(post =>
-      post.id === postId
-        ? {
-            ...post,
-            is_liked: !isLiked,
-            likes_count: post.likes_count + (isLiked ? -1 : 1),
-          }
-        : post
-    ));
+  const handleLike = async (postId, isLiked) => {
+    try {
+      // Optimistic update
+      setPosts(prevPosts => prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              is_liked: !isLiked,
+              likes_count: post.likes_count + (isLiked ? -1 : 1),
+            }
+          : post
+      ));
+
+      // Make API call
+      if (isLiked) {
+        await apiClient.unlikePost(postId);
+      } else {
+        await apiClient.likePost(postId);
+      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      // Revert on error
+      setPosts(prevPosts => prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              is_liked: isLiked,
+              likes_count: post.likes_count + (isLiked ? 1 : -1),
+            }
+          : post
+      ));
+    }
   };
 
-  const handleBookmark = (postId, isBookmarked) => {
-    setPosts(posts.map(post =>
-      post.id === postId
-        ? {
-            ...post,
-            is_bookmarked: !isBookmarked,
-            bookmarks_count: post.bookmarks_count + (isBookmarked ? -1 : 1),
-          }
-        : post
-    ));
+  const handleBookmark = async (postId, isBookmarked) => {
+    try {
+      // Optimistic update
+      setPosts(prevPosts => prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              is_bookmarked: !isBookmarked,
+              bookmarks_count: (post.bookmarks_count || 0) + (isBookmarked ? -1 : 1),
+            }
+          : post
+      ));
+
+      // Make API call
+      if (isBookmarked) {
+        await apiClient.unbookmarkPost(postId);
+      } else {
+        await apiClient.bookmarkPost(postId);
+      }
+    } catch (err) {
+      console.error('Error toggling bookmark:', err);
+      // Revert on error
+      setPosts(prevPosts => prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              is_bookmarked: isBookmarked,
+              bookmarks_count: (post.bookmarks_count || 0) + (isBookmarked ? 1 : -1),
+            }
+          : post
+      ));
+    }
   };
 
   const handleLoadMore = () => {
-    setPage(page + 1);
+    if (!loading && hasMore) {
+      setPage(prevPage => prevPage + 1);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo/Title */}
+            <h1 className="text-2xl font-bold text-gray-900">DevConnect</h1>
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-md">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            {/* Create Post Button */}
+            {user && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Create Post</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="border-t border-gray-200">
           <div className="max-w-4xl mx-auto px-4 flex gap-8">
             <button
-              onClick={() => setActiveTab('feed')}
+              onClick={() => {
+                setActiveTab('feed');
+                setPage(1);
+                setPosts([]);
+              }}
               className={`py-3 px-2 border-b-2 font-medium transition-colors ${
                 activeTab === 'feed'
                   ? 'border-blue-600 text-blue-600'
@@ -105,7 +180,6 @@ export const HomePage = () => {
             >
               Feed
             </button>
-
           </div>
         </div>
       </header>
@@ -120,22 +194,35 @@ export const HomePage = () => {
           />
         )}
 
-        {/* Posts List */}
+        {/* Error Message */}
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            Error loading posts: {error}
+            <strong>Error:</strong> {error}
           </div>
         )}
 
+        {/* Loading State (initial) */}
         {loading && posts.length === 0 ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         ) : posts.length === 0 ? (
+          /* Empty State */
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No posts yet. Be the first to share!</p>
+            <p className="text-gray-500 text-lg mb-4">
+              {activeTab === 'search' ? 'No posts found.' : 'No posts yet.'}
+            </p>
+            {user && activeTab !== 'search' && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Create First Post
+              </button>
+            )}
           </div>
         ) : (
+          /* Posts List */
           <div className="space-y-6">
             {posts.map(post => (
               <PostCard
@@ -151,10 +238,17 @@ export const HomePage = () => {
               <button
                 onClick={handleLoadMore}
                 disabled={loading}
-                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg disabled:opacity-50"
+                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Loading...' : 'Load More'}
               </button>
+            )}
+
+            {/* End Message */}
+            {!hasMore && posts.length > 0 && (
+              <p className="text-center text-gray-500 py-4">
+                You've reached the end!
+              </p>
             )}
           </div>
         )}
@@ -162,3 +256,5 @@ export const HomePage = () => {
     </div>
   );
 };
+
+export default HomePage;

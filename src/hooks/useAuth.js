@@ -36,7 +36,7 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.login(username, password);
+      await apiClient.login(username, password);
       const userData = await apiClient.getCurrentUser();
       setUser(userData);
       setIsAuthenticated(true);

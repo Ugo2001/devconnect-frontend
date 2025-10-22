@@ -2,7 +2,7 @@
 // src/pages/Search.jsx - Advanced Search Page
 // ============================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon, Filter, X } from 'lucide-react';
 import { apiClient } from '../services/api';
@@ -14,9 +14,12 @@ export const Search = () => {
   const initialQuery = searchParams.get('q') || '';
   
   const [query, setQuery] = useState(initialQuery);
+  const [inputValue, setInputValue] = useState(initialQuery); // Separate input state
   const [searchType, setSearchType] = useState('all'); // all, posts, users, snippets
   const [sortBy, setSortBy] = useState('relevance'); // relevance, newest, popular
   const [showFilters, setShowFilters] = useState(false);
+  const [tagFilter, setTagFilter] = useState('');
+  const [minReputation, setMinReputation] = useState('');
   
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,94 +27,192 @@ export const Search = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  // Perform search
-  useEffect(() => {
-    if (!query.trim()) {
+  // Debounced search function
+  const performSearch = useCallback(async (searchQuery) => {
+    if (!searchQuery.trim()) {
       setResults([]);
+      setError(null);
       return;
     }
 
-    const performSearch = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setPage(1);
+    try {
+      setLoading(true);
+      setError(null);
 
-        let allResults = [];
+      let allResults = [];
+      const searchParams = {
+        search: searchQuery,
+        page: 1,
+        page_size: 20
+      };
 
-        if (searchType === 'all' || searchType === 'posts') {
-          const postsData = await apiClient.getPosts({ 
-            search: query,
-            page: 1
-          });
-          const posts = (postsData.results || []).map(p => ({
+      // Add tag filter if present
+      if (tagFilter) {
+        searchParams.tags = tagFilter;
+      }
+
+      if (searchType === 'all' || searchType === 'posts') {
+        try {
+          const postsData = await apiClient.getPosts(searchParams);
+          const posts = Array.isArray(postsData) 
+            ? postsData 
+            : (postsData.results || []);
+          
+          const postsWithType = posts.map(p => ({
             ...p,
             type: 'post'
           }));
-          allResults = [...allResults, ...posts];
+          allResults = [...allResults, ...postsWithType];
+        } catch (err) {
+          console.error('Error fetching posts:', err);
         }
+      }
 
-        if (searchType === 'all' || searchType === 'users') {
-          const usersData = await apiClient.getUsers({ 
-            search: query,
-            page: 1
-          });
-          const users = (usersData.results || []).map(u => ({
+      if (searchType === 'all' || searchType === 'users') {
+        try {
+          const usersData = await apiClient.getUsers(searchParams);
+          const users = Array.isArray(usersData) 
+            ? usersData 
+            : (usersData.results || []);
+          
+          // Apply reputation filter
+          const filteredUsers = minReputation 
+            ? users.filter(u => (u.reputation || 0) >= parseInt(minReputation))
+            : users;
+          
+          const usersWithType = filteredUsers.map(u => ({
             ...u,
             type: 'user'
           }));
-          allResults = [...allResults, ...users];
+          allResults = [...allResults, ...usersWithType];
+        } catch (err) {
+          console.error('Error fetching users:', err);
         }
+      }
 
-        if (searchType === 'all' || searchType === 'snippets') {
-          const snippetsData = await apiClient.getSnippets({ 
-            search: query,
-            page: 1
-          });
-          const snippets = (snippetsData.results || []).map(s => ({
+      if (searchType === 'all' || searchType === 'snippets') {
+        try {
+          const snippetsData = await apiClient.getSnippets(searchParams);
+          const snippets = Array.isArray(snippetsData) 
+            ? snippetsData 
+            : (snippetsData.results || []);
+          
+          const snippetsWithType = snippets.map(s => ({
             ...s,
             type: 'snippet'
           }));
-          allResults = [...allResults, ...snippets];
+          allResults = [...allResults, ...snippetsWithType];
+        } catch (err) {
+          console.error('Error fetching snippets:', err);
         }
-
-        // Apply sorting
-        if (sortBy === 'newest') {
-          allResults.sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          );
-        } else if (sortBy === 'popular') {
-          allResults.sort((a, b) => {
-            const aScore = (a.likes_count || 0) + (a.followers_count || 0) + (a.views_count || 0);
-            const bScore = (b.likes_count || 0) + (b.followers_count || 0) + (b.views_count || 0);
-            return bScore - aScore;
-          });
-        }
-
-        setResults(allResults);
-        setHasMore(allResults.length > 20);
-
-        // Update URL
-        setSearchParams({ q: query });
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    performSearch();
-  }, [query, searchType, sortBy, setSearchParams]);
+      // Apply sorting
+      if (sortBy === 'newest') {
+        allResults.sort((a, b) => 
+          new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        );
+      } else if (sortBy === 'popular') {
+        allResults.sort((a, b) => {
+          const aScore = (a.likes_count || 0) + (a.followers_count || 0) + (a.views_count || 0);
+          const bScore = (b.likes_count || 0) + (b.followers_count || 0) + (b.views_count || 0);
+          return bScore - aScore;
+        });
+      }
+
+      setResults(allResults);
+      setHasMore(allResults.length >= 20);
+      setPage(1);
+
+      // Update URL
+      if (searchQuery) {
+        setSearchParams({ q: searchQuery });
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err.message || 'Failed to perform search');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchType, sortBy, tagFilter, minReputation, setSearchParams]);
+
+  // Perform search when query changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (query !== inputValue) {
+        setQuery(inputValue);
+      }
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [inputValue, query]);
+
+  // Trigger search when query or filters change
+  useEffect(() => {
+    performSearch(query);
+  }, [query, performSearch]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    // The useEffect above will handle the search
+    setQuery(inputValue);
   };
 
   const handleClearSearch = () => {
+    setInputValue('');
     setQuery('');
     setResults([]);
     setSearchParams({});
+  };
+
+  const handleLike = async (postId, isLiked) => {
+    try {
+      if (isLiked) {
+        await apiClient.unlikePost(postId);
+      } else {
+        await apiClient.likePost(postId);
+      }
+      
+      // Update local state
+      setResults(prevResults => prevResults.map(result =>
+        result.id === postId && result.type === 'post'
+          ? {
+              ...result,
+              is_liked: !isLiked,
+              likes_count: result.likes_count + (isLiked ? -1 : 1),
+            }
+          : result
+      ));
+    } catch (err) {
+      console.error('Error toggling like:', err);
+    }
+  };
+
+  const handleBookmark = async (postId, isBookmarked) => {
+    try {
+      if (isBookmarked) {
+        await apiClient.unbookmarkPost(postId);
+      } else {
+        await apiClient.bookmarkPost(postId);
+      }
+      
+      // Update local state
+      setResults(prevResults => prevResults.map(result =>
+        result.id === postId && result.type === 'post'
+          ? {
+              ...result,
+              is_bookmarked: !isBookmarked,
+              bookmarks_count: (result.bookmarks_count || 0) + (isBookmarked ? -1 : 1),
+            }
+          : result
+      ));
+    } catch (err) {
+      console.error('Error toggling bookmark:', err);
+    }
+  };
+
+  const handleApplyFilters = () => {
+    setPage(1);
+    performSearch(query);
   };
 
   const displayedResults = results.slice(0, page * 20);
@@ -129,12 +230,12 @@ export const Search = () => {
               <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Search posts, users, snippets..."
                 className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               />
-              {query && (
+              {inputValue && (
                 <button
                   type="button"
                   onClick={handleClearSearch}
@@ -180,7 +281,7 @@ export const Search = () => {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="relevance">Relevance</option>
               <option value="newest">Newest</option>
@@ -190,7 +291,11 @@ export const Search = () => {
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className={`px-4 py-2 border rounded-lg flex items-center gap-2 transition-colors ${
+                showFilters 
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -206,23 +311,42 @@ export const Search = () => {
                   <label className="block text-sm text-gray-700 mb-1">Tags</label>
                   <input
                     type="text"
+                    value={tagFilter}
+                    onChange={(e) => setTagFilter(e.target.value)}
                     placeholder="Enter tags (comma-separated)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1">Min Reputation</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {(searchType === 'all' || searchType === 'users') && (
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">Min Reputation</label>
+                    <input
+                      type="number"
+                      value={minReputation}
+                      onChange={(e) => setMinReputation(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={handleApplyFilters}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Apply Filters
+                </button>
               </div>
             </div>
           )}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
         {/* Results */}
         {loading && displayedResults.length === 0 ? (
@@ -242,35 +366,39 @@ export const Search = () => {
 
             {/* Results List */}
             <div className="space-y-4">
-              {displayedResults.map((result, index) => (
+              {displayedResults.map((result) => (
                 <div key={`${result.type}-${result.id}`}>
                   {result.type === 'post' && (
                     <PostCard
                       post={result}
-                      onLike={() => {}}
-                      onBookmark={() => {}}
+                      onLike={handleLike}
+                      onBookmark={handleBookmark}
                     />
                   )}
                   {result.type === 'user' && (
                     <UserListItem user={result} />
                   )}
                   {result.type === 'snippet' && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
                       <h3 className="font-semibold text-gray-900 mb-2">{result.title}</h3>
                       <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {result.description}
+                        {result.description || 'No description'}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex gap-3">
-                          <span className="text-xs px-2 py-1 bg-gray-100 rounded">
-                            {result.language.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            by {result.author.username}
-                          </span>
+                          {result.language && (
+                            <span className="text-xs px-2 py-1 bg-gray-100 rounded">
+                              {result.language.name || result.language}
+                            </span>
+                          )}
+                          {result.author && (
+                            <span className="text-xs text-gray-500">
+                              by {result.author.username}
+                            </span>
+                          )}
                         </div>
                         <span className="text-sm text-gray-600">
-                          ❤️ {result.likes_count}
+                          ❤️ {result.likes_count || 0}
                         </span>
                       </div>
                     </div>
@@ -282,14 +410,15 @@ export const Search = () => {
             {/* Load More Button */}
             {hasMore && displayedResults.length < results.length && (
               <button
-                onClick={() => setPage(page + 1)}
-                className="w-full mt-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition font-medium"
+                onClick={() => setPage(prevPage => prevPage + 1)}
+                disabled={loading}
+                className="w-full mt-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition font-medium disabled:opacity-50"
               >
                 Load More
               </button>
             )}
 
-            {displayedResults.length === results.length && results.length > 0 && (
+            {displayedResults.length === results.length && results.length > 0 && !hasMore && (
               <p className="text-center text-gray-500 mt-6">
                 Showing all {results.length} result{results.length !== 1 ? 's' : ''}
               </p>
@@ -308,3 +437,5 @@ export const Search = () => {
     </div>
   );
 };
+
+export default Search;
