@@ -71,9 +71,15 @@ export const LoginPage = () => {
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
-      setErrors({ 
-        general: err.response?.data?.detail || 'Invalid username or password' 
-      });
+      let message = 'An error occurred. Please try again.';
+  
+      if (err.response?.data?.detail) {
+        message = err.response.data.detail;
+      } else if (err.message) {
+        message = err.message;
+      }
+
+      setErrors({ general: message });
     } finally {
       setLoading(false);
     }
