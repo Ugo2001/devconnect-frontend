@@ -10,6 +10,8 @@ import { useEffect } from 'react';
 // Pages
 import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
+import { RegistrationPage } from './pages/Registration';
+import ForgotPassword from './pages/ForgotPassword';
 import { PostDetail } from './pages/PostDetail';
 import { UserProfile } from './pages/UserProfile';
 import { Search } from './pages/Search';
@@ -17,6 +19,18 @@ import { Search } from './pages/Search';
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout/Layout';
+
+
+// Public Route Component (redirect to dashboard if already logged in)
+const PublicRoute = ({ children }) => {
+  const token = localStorage.getItem('access_token');
+  
+  if (token) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
 function App() {
   const loadUser = useAuthStore((state) => state.loadUser);
@@ -30,6 +44,15 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+         <Route 
+          path="/register" 
+          element={
+            <PublicRoute>
+              <RegistrationPage />
+            </PublicRoute>
+          } 
+        />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Routes with Layout */}
         <Route

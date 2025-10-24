@@ -12,11 +12,40 @@ export const useAuthStore = create((set) => ({
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
 
+  // Register new user
+  register: async (userData) => {
+    try {
+      // Use apiClient instead of axios
+      const response = await apiClient.post('/api/users/', userData);
+      
+      if (response.data.tokens) {
+        // Store tokens
+        localStorage.setItem('access_token', response.data.tokens.access);
+        localStorage.setItem('refresh_token', response.data.tokens.refresh);
+        
+        // Update apiClient token
+        apiClient.accessToken = response.data.tokens.access;
+        
+        // Update store
+        set({ 
+          user: response.data.user,
+          isAuthenticated: true,
+          loading: false
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  },
+
   login: async (username, password) => {
     try {
       await apiClient.login(username, password);
       const user = await apiClient.getCurrentUser();
-      set({ user, isAuthenticated: true });
+      set({ user, isAuthenticated: true, loading: false });
       return user;
     } catch (error) {
       console.error('Login failed:', error);

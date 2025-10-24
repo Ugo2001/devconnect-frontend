@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Mail, User, Lock } from 'lucide-react';
+import { apiClient } from '../services/api';
 
-const RegistrationPage = () => {
+export const RegistrationPage = () => {
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -59,8 +63,7 @@ const RegistrationPage = () => {
   };
 
   const handleChange = (e) => {
-    const name = e.target.name;
-    const value = e.target.value;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -75,61 +78,47 @@ const RegistrationPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+  e.preventDefault();
+
+  if (!validateForm()) {
+    return;
+  }
+
+  setLoading(true);
+  setErrors({});
+
+  try {
+    const response = await apiClient.register({
+      username: formData.username,
+      email: formData.email,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      password: formData.password,
+      password_confirm: formData.passwordConfirm
+    });
+
+    // Optionally store tokens if returned
+    if (response.tokens) {
+      apiClient.setTokens(response.tokens.access, response.tokens.refresh);
     }
-    
-    setLoading(true);
-    setErrors({});
-    
-    try {
-      const response = await fetch('http://localhost:8000/api/users/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          password: formData.password,
-          password_confirm: formData.passwordConfirm
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        localStorage.setItem('access_token', data.tokens.access);
-        localStorage.setItem('refresh_token', data.tokens.refresh);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        setSuccess(true);
-        
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 2000);
-      } else {
-        const apiErrors = {};
-        Object.keys(data).forEach(key => {
-          if (Array.isArray(data[key])) {
-            apiErrors[key] = data[key][0];
-          } else {
-            apiErrors[key] = data[key];
-          }
-        });
-        setErrors(apiErrors);
-      }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setErrors({ general: 'An error occurred. Please try again.' });
-    } finally {
-      setLoading(false);
+
+    setSuccess(true);
+
+    setTimeout(() => {
+      navigate('/');
+    }, 2000);
+  } catch (err) {
+    console.error('Registration error:', err);
+    const apiErrors = {};
+    if (err.message) {
+      apiErrors.general = err.message;
     }
-  };
+    setErrors(apiErrors);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (success) {
     return (
@@ -160,7 +149,7 @@ const RegistrationPage = () => {
           </div>
         )}
 
-        <div className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Username *
@@ -305,25 +294,34 @@ const RegistrationPage = () => {
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
-        </div>
+        </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign in
-            </a>
-          </p>
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Link
+              to="/login"
+              className="w-full inline-flex items-center justify-center px-4 py-3 border border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
+            >
+              Sign In Instead
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-export default RegistrationPage;
