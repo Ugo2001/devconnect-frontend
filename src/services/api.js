@@ -126,13 +126,7 @@ class APIClient {
   }
 
   async getCurrentUser() {
-    try {
-      const res = await apiClient.get('api/users/me/');
-      return res.data;
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      return null; // 👈 fallback
-    }
+    return this.get('api/users/me/');
   }
 
   // Users endpoints
