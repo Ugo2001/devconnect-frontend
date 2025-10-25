@@ -111,7 +111,7 @@ class APIClient {
 
   // Authentication endpoints
   async login(username, password) {
-    const data = await this.post('/api/token/', { username, password });
+    const data = await this.post('token/', { username, password });
     this.setTokens(data.access, data.refresh);
     return data;
   }
