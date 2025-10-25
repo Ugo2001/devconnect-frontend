@@ -8,7 +8,7 @@ import { apiClient } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { PostCard } from '../components/posts/PostCard';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
-import { SearchBar } from '../components/SearchBar';
+
 
 export const HomePage = () => {
   const [posts, setPosts] = useState([]);
@@ -16,7 +16,6 @@ export const HomePage = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState('feed'); // feed, trending, search
   const { user } = useAuth();
@@ -27,21 +26,15 @@ export const HomePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, activeTab]);
 
-  const fetchPosts = async () => {
+   const fetchPosts = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      let data;
-      if (activeTab === 'search' && searchQuery) {
-        data = await apiClient.getPosts({ search: searchQuery, page });
-        setPosts(prevPosts => page === 1 ? (data.results || []) : [...prevPosts, ...(data.results || [])]);
-        setHasMore(!!data.next);
-      } else {
-        data = await apiClient.getPosts({ page });
-        setPosts(prevPosts => page === 1 ? (Array.isArray(data) ? data : data.results || []) : [...prevPosts, ...(Array.isArray(data) ? data : data.results || [])]);
-        setHasMore(!!data.next);
-      }
+      const data = await apiClient.getPosts({ page });
+      setPosts(prev =>
+        page === 1 ? (Array.isArray(data) ? data : data.results || []) : [...prev, ...(Array.isArray(data) ? data : data.results || [])]
+      );
+      setHasMore(!!data.next);
     } catch (err) {
       console.error('Error fetching posts:', err);
       setError(err.message || 'Failed to load posts');
@@ -50,12 +43,12 @@ export const HomePage = () => {
     }
   };
 
-  const handleSearch = (query) => {
+  /*const handleSearch = (query) => {
     setSearchQuery(query);
     setPage(1);
     setPosts([]); // Clear posts when starting new search
     setActiveTab('search');
-  };
+  };*/
 
   const handlePostCreated = (newPost) => {
     setPosts(prevPosts => [newPost, ...prevPosts]);
@@ -140,28 +133,7 @@ export const HomePage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo/Title */}
-            <h1 className="text-2xl font-bold text-gray-900">DevConnect</h1>
-
-            {/* Search Bar */}
-            <div className="flex-1 max-w-md">
-              <SearchBar onSearch={handleSearch} />
-            </div>
-
-            {/* Create Post Button */}
-            {user && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Create Post</span>
-              </button>
-            )}
-          </div>
-        </div>
+ 
 
         {/* Tabs */}
         <div className="border-t border-gray-200">

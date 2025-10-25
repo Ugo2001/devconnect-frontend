@@ -5,15 +5,26 @@ import { useAuth } from '../../hooks/useAuth';
 import { SearchBar } from '../SearchBar';
 import { CreatePostModal } from '../posts/CreatePostModal';
 
-export const Navbar = () => {
+export const Navbar = ({ onSearch, setActiveTab, setPosts, setPage }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+
+  
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleSearch = (query) => {
+    if (onSearch) {
+      onSearch(query);
+    }
+    if (setActiveTab) setActiveTab('search');
+    if (setPage) setPage(1);
+    if (setPosts) setPosts([]);
   };
 
   const handlePostCreated = (newPost) => {
@@ -43,13 +54,13 @@ export const Navbar = () => {
 
             {/* Search - Hidden on mobile */}
             <div className="flex-1 max-w-md hidden md:block">
-              <SearchBar />
+              <SearchBar onSearch={handleSearch} />
             </div>
 
             {/* Right Side Items */}
             <div className="flex items-center gap-4">
               {/* Notifications */}
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition" aria-label="Notifications">
                 <Bell className="w-6 h-6 text-gray-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
@@ -116,7 +127,8 @@ export const Navbar = () => {
           {showMenu && (
             <div className="sm:hidden mt-4 pt-4 border-t border-gray-200 space-y-4">
               <div className="px-2">
-                <SearchBar />
+                <SearchBar onSearch={handleSearch} />
+
               </div>
 
               {user && (
