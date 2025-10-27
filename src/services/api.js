@@ -9,6 +9,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 class APIClient {
   constructor() {
     this.baseURL = API_BASE_URL;
+    console.log('🔍 API_BASE_URL:', API_BASE_URL); // ADD THIS
+    console.log('🔍 this.baseURL:', this.baseURL);  // ADD THIS
     this.accessToken = localStorage.getItem('access_token');
     this.refreshToken = localStorage.getItem('refresh_token');
   }
