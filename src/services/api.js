@@ -109,151 +109,149 @@ class APIClient {
     return this.request(endpoint, { method: 'DELETE' });
   }
 
+  // ✅ CORRECT - Remove the "api/" prefix from all endpoints
+
   // Authentication endpoints
   async login(username, password) {
-    const data = await this.post('api/token/', { username, password });
+    const data = await this.post('token/', { username, password });
     this.setTokens(data.access, data.refresh);
     return data;
   }
 
   async register(userData) {
-    const data = await this.post('api/users/', userData);
+    const data = await this.post('users/', userData);
     return data;
   }
 
-  async logout() {
-    this.clearTokens();
-  }
-
   async getCurrentUser() {
-    return this.get('api/users/me/');
+    return this.get('users/me/');
   }
 
   // Users endpoints
   getUsers(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`api/users/?${query}`);
+    return this.get(`users/?${query}`);
   }
 
   getUser(id) {
-    return this.get(`api/users/${id}/`);
+    return this.get(`users/${id}/`);
   }
 
   updateUser(id, data) {
-    return this.patch(`api/users/${id}/`, data);
+    return this.patch(`users/${id}/`, data);
   }
 
   followUser(id) {
-    return this.post(`api/users/${id}/follow/`, {});
+    return this.post(`users/${id}/follow/`, {});
   }
 
   unfollowUser(id) {
-    return this.post(`api/users/${id}/unfollow/`, {});
+    return this.post(`users/${id}/unfollow/`, {});
   }
 
   getUserFollowers(id) {
-    return this.get(`api/users/${id}/followers/`);
+    return this.get(`users/${id}/followers/`);
   }
 
   getUserFollowing(id) {
-    return this.get(`api/users/${id}/following/`);
+    return this.get(`users/${id}/following/`);
   }
 
   // Posts endpoints
   getPosts(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`api/posts/?${query}`);
+    return this.get(`posts/?${query}`);
   }
 
   getPost(id) {
-    return this.get(`api/posts/${id}/`);
+    return this.get(`posts/${id}/`);
   }
 
   createPost(data) {
-    return this.post('api/posts/', data);
+    return this.post('posts/', data);
   }
 
   updatePost(id, data) {
-    return this.patch(`api/posts/${id}/`, data);
+    return this.patch(`posts/${id}/`, data);
   }
 
   deletePost(id) {
-    return this.delete(`api/posts/${id}/`);
+    return this.delete(`posts/${id}/`);
   }
 
   likePost(id) {
-    return this.post(`api/posts/${id}/like/`, {});
+    return this.post(`posts/${id}/like/`, {});
   }
 
   unlikePost(id) {
-    return this.post(`api/posts/${id}/unlike/`, {});
+    return this.post(`posts/${id}/unlike/`, {});
   }
 
   bookmarkPost(id) {
-    return this.post(`api/posts/${id}/bookmark/`, {});
+    return this.post(`posts/${id}/bookmark/`, {});
   }
 
   unbookmarkPost(id) {
-    return this.post(`api/posts/${id}/unbookmark/`, {});
+    return this.post(`posts/${id}/unbookmark/`, {});
   }
 
   getPostFeed() {
-    return this.get('api/posts/');
+    return this.get('posts/');
   }
 
   // Snippets endpoints
   getSnippets(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.get(`api/snippets/?${query}`);
+    return this.get(`snippets/?${query}`);
   }
 
   getSnippet(id) {
-    return this.get(`api/snippets/${id}/`);
+    return this.get(`snippets/${id}/`);
   }
 
   createSnippet(data) {
-    return this.post('api/snippets/', data);
+    return this.post('snippets/', data);
   }
 
   updateSnippet(id, data) {
-    return this.patch(`api/snippets/${id}/`, data);
+    return this.patch(`snippets/${id}/`, data);
   }
 
   deleteSnippet(id) {
-    return this.delete(`api/snippets/${id}/`);
+    return this.delete(`snippets/${id}/`);
   }
 
   likeSnippet(id) {
-    return this.post(`api/snippets/${id}/like/`, {});
+    return this.post(`snippets/${id}/like/`, {});
   }
 
   unlikeSnippet(id) {
-    return this.post(`api/snippets/${id}/unlike/`, {});
+    return this.post(`snippets/${id}/unlike/`, {});
   }
 
   forkSnippet(id) {
-    return this.post(`api/snippets/${id}/fork/`, {});
+    return this.post(`snippets/${id}/fork/`, {});
   }
 
   getTrendingSnippets() {
-    return this.get('api/snippets/trending/');
+    return this.get('snippets/trending/');
   }
 
   // Notifications endpoints
   getNotifications() {
-    return this.get('api/notifications/');
+    return this.get('notifications/');
   }
 
   getUnreadNotifications() {
-    return this.get('api/notifications/unread/');
+    return this.get('notifications/unread/');
   }
 
   markNotificationRead(id) {
-    return this.post(`api/notifications/${id}/mark_read/`, {});
+    return this.post(`notifications/${id}/mark_read/`, {});
   }
 
   markAllNotificationsRead() {
-    return this.post('api/notifications/mark_all_read/', {});
+    return this.post('notifications/mark_all_read/', {});
   }
 }
 
