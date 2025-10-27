@@ -79,7 +79,7 @@ export const Navbar = ({ onSearch, setActiveTab, setPosts, setPage }) => {
                 {user && (
                   <>
                     <Link
-                      to={`/users/${user.id}`}
+                      to={`users/${user.id}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
                     >
                       <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -134,7 +134,7 @@ export const Navbar = ({ onSearch, setActiveTab, setPosts, setPage }) => {
               {user && (
                 <>
                   <Link
-                    to={`/users/${user.id}`}
+                    to={`users/${user.id}`}
                     className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
                     onClick={() => setShowMenu(false)}
                   >

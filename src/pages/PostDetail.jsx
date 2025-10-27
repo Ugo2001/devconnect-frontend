@@ -140,7 +140,7 @@ export const PostDetail = () => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-start justify-between mb-4">
               <Link
-                to={`/users/${post.author.id}`}
+                to={`users/${post.author.id}`}
                 className="flex items-center gap-3 hover:opacity-80"
               >
                 <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">

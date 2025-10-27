@@ -53,7 +53,7 @@ export const PostCard = ({ post, onLike, onBookmark }) => {
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-start justify-between">
           <Link
-            to={`/users/${post.author.id}`}
+            to={`users/${post.author.id}`}
             className="flex items-center gap-3 hover:opacity-80"
           >
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
@@ -83,7 +83,7 @@ export const PostCard = ({ post, onLike, onBookmark }) => {
       </div>
 
       {/* Content */}
-      <Link to={`/posts/${post.id}`} className="block">
+      <Link to={`posts/${post.id}`} className="block">
         <div className="px-4 pt-4 pb-2 hover:bg-gray-50 transition-colors">
           <h2 className="text-lg font-bold text-gray-900 mb-2 hover:text-blue-600">
             {post.title}
@@ -113,7 +113,7 @@ export const PostCard = ({ post, onLike, onBookmark }) => {
 
       {/* Cover Image */}
       {post.cover_image && (
-        <Link to={`/posts/${post.id}`}>
+        <Link to={`posts/${post.id}`}>
           <img
             src={post.cover_image}
             alt={post.title}
@@ -155,7 +155,7 @@ export const PostCard = ({ post, onLike, onBookmark }) => {
         </button>
 
         <Link
-          to={`/posts/${post.id}#comments`}
+          to={`posts/${post.id}#comments`}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <MessageCircle className="w-4 h-4" />

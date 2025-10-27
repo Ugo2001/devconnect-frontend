@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 export const UserListItem = ({ user }) => {
   return (
     <Link
-      to={`/users/${user.id}`}
+      to={`users/${user.id}`}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow flex items-center gap-4"
     >
       <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">

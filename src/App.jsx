@@ -67,7 +67,7 @@ function App() {
         />
 
         <Route
-          path="/posts/:id"
+          path="posts/:id"
           element={
             <ProtectedRoute>
               <Layout>
@@ -78,7 +78,7 @@ function App() {
         />
 
         <Route
-          path="/users/:id"
+          path="users/:id"
           element={
             <ProtectedRoute>
               <Layout>
@@ -89,7 +89,7 @@ function App() {
         />
 
         <Route
-          path="/search"
+          path="search"
           element={
             <ProtectedRoute>
               <Layout>
