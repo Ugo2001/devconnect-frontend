@@ -3,8 +3,10 @@
 // ============================================================================
 
 
-const API_BASE_URL = 'https://devconnect-backend-production-d374.up.railway.app/api';
-// Comment out the import.meta.env line
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+console.log('✅ Environment variable loaded:', import.meta.env.VITE_API_URL);
+console.log('✅ Using API_BASE_URL:', API_BASE_URL);
 
 class APIClient {
   constructor() {
