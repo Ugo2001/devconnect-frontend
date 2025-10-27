@@ -67,7 +67,7 @@ class APIClient {
 
   // Make request
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${this.baseURL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
     const headers = this.getHeaders(options.contentType);
     
     const config = {
